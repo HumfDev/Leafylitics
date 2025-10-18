@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Leafylitics",
+    "slug": "leafylitics",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#F5F3E7"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.leafylitics.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Leafylitics needs camera access to take photos of plant leaves for disease detection.",
+        "NSPhotoLibraryUsageDescription": "Leafylitics needs photo library access to select images for analysis.",
+        "NSLocationWhenInUseUsageDescription": "Leafylitics uses your location to provide environmental context for plant health analysis."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F5F3E7"
+      },
+      "package": "com.leafylitics.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-image-picker",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Leafylitics to use your location for environmental context."
+        }
+      ]
+    ],
+    "sdkVersion": "54.0.0"
+  }
+}
+
