@@ -57,22 +57,24 @@ services:
       - /app/node_modules
     command: npm run dev
 
-  # FreeCAD Worker
-  freecad-worker:
+  # ML Engine for Image Processing
+  ml-engine:
     build:
-      context: ../cad-engine
+      context: ../ml-engine
       dockerfile: Dockerfile
     environment:
       REDIS_URL: redis://redis:6379
       AWS_ACCESS_KEY_ID: your-aws-access-key
       AWS_SECRET_ACCESS_KEY: your-aws-secret-key
-      AWS_S3_BUCKET: derive-cad-files
+      AWS_S3_BUCKET: leafylitics-images
+      DATABASE_URL: postgresql://derive_user:derive_password@postgres:5432/derive_cad
     depends_on:
       - redis
+      - postgres
     volumes:
-      - ../cad-engine:/app
-      - /app/node_modules
-    command: npm run worker
+      - ../ml-engine:/app
+      - ml_models:/app/models
+    command: python app.py
 
   # Frontend (for development)
   frontend:
@@ -91,3 +93,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  ml_models:

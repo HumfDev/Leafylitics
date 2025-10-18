@@ -1,41 +1,41 @@
-# Derive AI-CAD Platform
+# Leafylitics
 
-An AI-powered CAD platform that enables users to create 3D models through natural language commands. By integrating LLM technology with FreeCAD's kernel, Derive eliminates the traditional CAD learning curve and enables rapid prototyping.
+An AI-powered farming application that analyzes plant health through leaf image recognition. Simply take a picture of a leaf, and Leafylitics will provide detailed insights about plant health, disease detection, nutrient deficiencies, and growth recommendations.
 
 ## 🚀 Core Value Proposition
 
-Transform the CAD workflow from complex menu-driven operations to conversational design:
-**"Design a rectangular electronics enclosure, 100×60×40 mm"** → instant parametric 3D model ready for export and manufacturing.
+Transform plant health monitoring from expert knowledge to instant AI analysis:
+**Take a photo of any leaf** → get instant health data, disease detection, and care recommendations.
 
 ## 🎯 Target Users
 
-- **Primary**: Engineers and early-stage builders (including student engineers)
-- **Secondary**: Students learning CAD/design  
-- **Tertiary**: Makers, hardware startups, rapid prototyping teams
+- **Primary**: Farmers and agricultural professionals
+- **Secondary**: Gardeners and plant enthusiasts
+- **Tertiary**: Agricultural researchers and students
 
 ## 🛠️ Tech Stack
 
 ### Frontend
 - **Framework**: React 18+ with TypeScript
-- **3D Rendering**: Three.js
-- **UI Components**: Custom components following Apple's translucent design language
+- **Image Processing**: Canvas API, React Image Crop
+- **UI Components**: Custom components with clean, nature-inspired design
 - **Styling**: Tailwind CSS
 - **Build Tool**: Vite
 
 ### Backend
 - **Runtime**: Node.js with Express.js
-- **AI Integration**: Google Gemini API
-- **CAD Engine**: FreeCAD (containerized Python environment)
-- **Database**: PostgreSQL for metadata, AWS S3 for CAD files
-- **Queue System**: Redis for AI job processing
+- **AI Integration**: TensorFlow.js, Google Vision API, or custom ML models
+- **Image Processing**: Sharp, OpenCV (Python)
+- **Database**: PostgreSQL for user data, AWS S3 for images
+- **Queue System**: Redis for image processing jobs
 
 ## 📁 Project Structure
 
 ```
-derive/
+leafylitics/
 ├── frontend/                 # React TypeScript application
 ├── backend/                  # Node.js Express server
-├── cad-engine/               # FreeCAD integration
+├── ml-engine/                # Image processing and ML models
 ├── shared/                   # Shared types and utilities
 ├── docs/                     # Documentation
 └── deployment/               # Infrastructure as code
@@ -48,6 +48,7 @@ derive/
 - Docker
 - PostgreSQL
 - Redis
+- Python 3.8+ (for ML models)
 
 ### Installation
 
@@ -66,6 +67,10 @@ npm install
 # Backend
 cd ../backend
 npm install
+
+# ML Engine
+cd ../ml-engine
+pip install -r requirements.txt
 ```
 
 3. Set up environment variables
@@ -83,22 +88,27 @@ npm run dev
 # Frontend (in new terminal)
 cd frontend
 npm run dev
+
+# ML Engine (in new terminal)
+cd ml-engine
+python app.py
 ```
 
 ## 🎨 Design Philosophy
 
-**Apple-inspired liquid glass aesthetic with a clean, futuristic laboratory feel**
+**Clean, nature-inspired design with focus on plant health visualization**
 
-- Pure white to soft light gradient backgrounds
-- Translucent glass panels with backdrop blur
-- Smooth animations and physics-based interactions
-- High contrast text for accessibility
+- Earth tones and natural color palettes
+- Clean, accessible interface for outdoor use
+- Clear data visualization for plant health metrics
+- Mobile-first design for field use
 
 ## 📊 Success Metrics
 
-- Time from concept to exportable CAD: < 10 minutes
-- User retention: Monthly active usage of AI commands
-- Technical: <30s AI generation time, 30-60 FPS viewport interaction
+- Image analysis accuracy: >90% for common plant diseases
+- Processing time: <5 seconds per image
+- User retention: Daily active usage for farm monitoring
+- Technical: <2s image upload, <3s analysis completion
 
 ## 🤝 Contributing
 

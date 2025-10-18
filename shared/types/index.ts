@@ -10,70 +10,91 @@ export interface User {
   updatedAt: Date;
 }
 
-export interface Project {
+export interface Plant {
   id: string;
   userId: string;
   name: string;
-  description?: string;
-  currentRevisionId?: string;
+  species?: string;
+  variety?: string;
+  plantingDate?: Date;
+  location?: PlantLocation;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface ModelRevision {
-  id: string;
-  projectId: string;
-  parentRevisionId?: string;
-  revisionNumber: number;
-  freecadFileUrl?: string;
-  thumbnailUrl?: string;
-  isCurrent: boolean;
-  createdAt: Date;
+export interface PlantLocation {
+  latitude: number;
+  longitude: number;
+  address?: string;
+  fieldName?: string;
 }
 
-export interface AIPrompt {
+export interface LeafAnalysis {
   id: string;
-  revisionId: string;
+  plantId: string;
   userId: string;
-  promptText: string;
-  promptType: 'text' | 'sketch' | 'image';
-  inputData?: Record<string, any>;
+  imageUrl: string;
+  thumbnailUrl: string;
+  analysisResults: AnalysisResults;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   errorMessage?: string;
   processingTimeMs?: number;
   createdAt: Date;
 }
 
-export interface AIOutput {
-  id: string;
-  promptId: string;
-  revisionId: string;
-  freecadScript: string;
-  executionLog: string;
-  success: boolean;
-  createdAt: Date;
+export interface AnalysisResults {
+  overallHealth: HealthScore;
+  diseases: DiseaseDetection[];
+  nutrientDeficiencies: NutrientDeficiency[];
+  pestDamage: PestDamage[];
+  growthStage: GrowthStage;
+  recommendations: Recommendation[];
+  confidence: number;
 }
 
-export interface ModelParameter {
-  id: string;
-  revisionId: string;
-  parameterName: string;
-  parameterValue: number;
-  parameterType: 'length' | 'angle' | 'count' | 'boolean';
-  minValue?: number;
-  maxValue?: number;
-  unit?: string;
-  createdAt: Date;
+export interface HealthScore {
+  score: number; // 0-100
+  level: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
+  factors: string[];
 }
 
-export interface Export {
-  id: string;
-  revisionId: string;
-  userId: string;
-  exportFormat: 'STL' | 'STEP' | 'IGES';
-  fileUrl: string;
-  fileSizeBytes: number;
-  createdAt: Date;
+export interface DiseaseDetection {
+  disease: string;
+  confidence: number;
+  severity: 'low' | 'medium' | 'high';
+  affectedArea: number; // percentage
+  description: string;
+  treatment: string[];
+}
+
+export interface NutrientDeficiency {
+  nutrient: string;
+  deficiency: 'low' | 'moderate' | 'severe';
+  confidence: number;
+  symptoms: string[];
+  recommendations: string[];
+}
+
+export interface PestDamage {
+  pest: string;
+  damageType: string;
+  severity: 'low' | 'medium' | 'high';
+  affectedArea: number; // percentage
+  treatment: string[];
+}
+
+export interface GrowthStage {
+  stage: 'seedling' | 'vegetative' | 'flowering' | 'fruiting' | 'mature';
+  confidence: number;
+  estimatedDaysToNext: number;
+}
+
+export interface Recommendation {
+  type: 'treatment' | 'prevention' | 'nutrition' | 'environmental';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  title: string;
+  description: string;
+  actionItems: string[];
 }
 
 export interface AuditLog {
@@ -103,54 +124,59 @@ export interface PaginatedResponse<T> extends APIResponse<T[]> {
   };
 }
 
-// 3D Model types
-export interface Model3D {
-  id: string;
-  name: string;
-  vertices: number[];
-  faces: number[];
-  normals: number[];
-  materials?: Material[];
-  parameters: ModelParameter[];
+// Image Analysis types
+export interface ImageUpload {
+  file: File;
+  plantId?: string;
+  location?: PlantLocation;
+  metadata?: Record<string, any>;
 }
 
-export interface Material {
-  id: string;
-  name: string;
-  color: string;
-  opacity: number;
-  metalness: number;
-  roughness: number;
+export interface ImageAnalysisRequest {
+  imageUrl: string;
+  plantId?: string;
+  location?: PlantLocation;
+  analysisType?: 'full' | 'disease' | 'nutrient' | 'pest';
+  metadata?: Record<string, any>;
 }
 
-// CAD Generation types
-export interface CADGenerationRequest {
-  prompt: string;
-  promptType: 'text' | 'sketch' | 'image';
-  inputData?: Record<string, any>;
-  projectId?: string;
-  parentRevisionId?: string;
-}
-
-export interface CADGenerationResponse {
+export interface ImageAnalysisResponse {
   success: boolean;
-  revisionId?: string;
-  modelUrl?: string;
-  parameters?: ModelParameter[];
+  analysisId?: string;
+  results?: AnalysisResults;
   error?: string;
   processingTimeMs?: number;
 }
 
-// Export types
-export interface ExportRequest {
-  revisionId: string;
-  format: 'STL' | 'STEP' | 'IGES';
-  quality?: 'low' | 'medium' | 'high';
+// Plant Database types
+export interface PlantSpecies {
+  id: string;
+  commonName: string;
+  scientificName: string;
+  family: string;
+  growthHabits: string[];
+  commonDiseases: string[];
+  nutrientNeeds: string[];
+  optimalConditions: {
+    temperature: { min: number; max: number };
+    humidity: { min: number; max: number };
+    soilPh: { min: number; max: number };
+  };
 }
 
-export interface ExportResponse {
-  success: boolean;
-  downloadUrl?: string;
-  fileSizeBytes?: number;
-  error?: string;
+// History and Tracking types
+export interface AnalysisHistory {
+  id: string;
+  plantId: string;
+  analyses: LeafAnalysis[];
+  trends: HealthTrend[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface HealthTrend {
+  metric: string;
+  values: { date: Date; value: number }[];
+  trend: 'improving' | 'stable' | 'declining';
+  changeRate: number;
 }
