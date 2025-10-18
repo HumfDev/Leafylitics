@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: derive_cad
+      POSTGRES_USER: derive_user
+      POSTGRES_PASSWORD: derive_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U derive_user -d derive_cad"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://derive_user:derive_password@postgres:5432/derive_cad
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-jwt-secret-key
+      GEMINI_API_KEY: your-gemini-api-key
+      AWS_ACCESS_KEY_ID: your-aws-access-key
+      AWS_SECRET_ACCESS_KEY: your-aws-secret-key
+      AWS_S3_BUCKET: derive-cad-files
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../backend:/app
+      - /app/node_modules
+    command: npm run dev
+
+  # FreeCAD Worker
+  freecad-worker:
+    build:
+      context: ../cad-engine
+      dockerfile: Dockerfile
+    environment:
+      REDIS_URL: redis://redis:6379
+      AWS_ACCESS_KEY_ID: your-aws-access-key
+      AWS_SECRET_ACCESS_KEY: your-aws-secret-key
+      AWS_S3_BUCKET: derive-cad-files
+    depends_on:
+      - redis
+    volumes:
+      - ../cad-engine:/app
+      - /app/node_modules
+    command: npm run worker
+
+  # Frontend (for development)
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:3001
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    command: npm run dev
+
+volumes:
+  postgres_data:
+  redis_data:
