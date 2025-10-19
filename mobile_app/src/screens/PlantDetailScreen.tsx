@@ -210,8 +210,24 @@ export default function PlantDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <View style={styles.container}>
+      {/* Subtle plant pattern overlay */}
+      <View style={styles.patternOverlay}>
+        <Ionicons name="leaf" size={70} color="#228B22" style={styles.patternIcon1} />
+        <Ionicons name="leaf" size={65} color="#228B22" style={styles.patternIcon2} />
+        <Ionicons name="leaf" size={75} color="#228B22" style={styles.patternIcon3} />
+        <Ionicons name="leaf" size={60} color="#228B22" style={styles.patternIcon4} />
+        <Ionicons name="leaf" size={68} color="#228B22" style={styles.patternIcon5} />
+        <Ionicons name="leaf" size={72} color="#228B22" style={styles.patternIcon6} />
+        <Ionicons name="leaf" size={63} color="#228B22" style={styles.patternIcon7} />
+        <Ionicons name="leaf" size={66} color="#228B22" style={styles.patternIcon8} />
+        <Ionicons name="leaf" size={69} color="#228B22" style={styles.patternIcon9} />
+        <Ionicons name="leaf" size={64} color="#228B22" style={styles.patternIcon10} />
+        <Ionicons name="leaf" size={71} color="#228B22" style={styles.patternIcon11} />
+        <Ionicons name="leaf" size={67} color="#228B22" style={styles.patternIcon12} />
+      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
@@ -238,14 +254,101 @@ export default function PlantDetailScreen() {
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F3E7',
+    backgroundColor: '#D4F4DD',
+    position: 'relative',
+  },
+  safeArea: {
+    flex: 1,
+    zIndex: 1,
+  },
+  patternOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+    opacity: 0.8,
+  },
+  patternIcon1: {
+    position: 'absolute',
+    top: 100,
+    left: 50,
+    opacity: 0.6,
+  },
+  patternIcon2: {
+    position: 'absolute',
+    top: 100,
+    right: 50,
+    opacity: 0.5,
+  },
+  patternIcon3: {
+    position: 'absolute',
+    top: 200,
+    left: 80,
+    opacity: 0.7,
+  },
+  patternIcon4: {
+    position: 'absolute',
+    top: 200,
+    right: 80,
+    opacity: 0.4,
+  },
+  patternIcon5: {
+    position: 'absolute',
+    top: 300,
+    left: 40,
+    opacity: 0.6,
+  },
+  patternIcon6: {
+    position: 'absolute',
+    top: 300,
+    right: 40,
+    opacity: 0.5,
+  },
+  patternIcon7: {
+    position: 'absolute',
+    top: 400,
+    left: 120,
+    opacity: 0.7,
+  },
+  patternIcon8: {
+    position: 'absolute',
+    top: 400,
+    right: 120,
+    opacity: 0.4,
+  },
+  patternIcon9: {
+    position: 'absolute',
+    top: 500,
+    left: 60,
+    opacity: 0.6,
+  },
+  patternIcon10: {
+    position: 'absolute',
+    top: 500,
+    right: 60,
+    opacity: 0.5,
+  },
+  patternIcon11: {
+    position: 'absolute',
+    top: 600,
+    left: 100,
+    opacity: 0.7,
+  },
+  patternIcon12: {
+    position: 'absolute',
+    top: 600,
+    right: 100,
+    opacity: 0.4,
   },
   header: {
     flexDirection: 'row',
