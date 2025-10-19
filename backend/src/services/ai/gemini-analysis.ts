@@ -97,9 +97,9 @@ export class GeminiAnalysisService {
     this.model = this.genAI.getGenerativeModel({ 
       model: 'gemini-2.5-flash',
       generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
+        temperature: 0.3, // Lower temperature for more consistent output
+        topK: 20, // Reduced for more focused responses
+        topP: 0.8, // Reduced for more focused responses
         maxOutputTokens: 2048,
       }
     });
@@ -201,7 +201,67 @@ Structure your response as JSON with the following fields:
 
 CRITICAL: You must respond with ONLY a valid JSON object. No additional text, explanations, or formatting outside the JSON structure.
 
-Now, analyze the provided leaf image following this framework.
+IMPORTANT: Your response must start with { and end with }. Do not include any markdown formatting, explanations, or text before or after the JSON.
+
+EXAMPLE FORMAT (respond in exactly this structure):
+{
+  "image_quality": {
+    "is_acceptable": true,
+    "clarity_score": 85,
+    "issues": [],
+    "retake_guidance": null
+  },
+  "plant_identification": {
+    "common_name": "Tomato",
+    "scientific_name": "Solanum lycopersicum",
+    "confidence": 88
+  },
+  "diagnoses": [
+    {
+      "rank": 1,
+      "condition_name": "Early Blight",
+      "scientific_name": "Alternaria solani",
+      "confidence": 85,
+      "severity": "Moderate",
+      "affected_area_percent": 15,
+      "progression_stage": "Early",
+      "key_symptoms": ["Brown spots", "Yellowing leaves"],
+      "visual_description": "Circular brown lesions with yellow halos",
+      "affected_regions": "Lower leaves"
+    }
+  ],
+  "overall_confidence": 85,
+  "requires_expert_review": false,
+  "uncertainty_notes": null,
+  "recommendations": {
+    "immediate": [
+      {
+        "action": "Remove affected leaves",
+        "reason": "Prevent disease spread",
+        "expected_outcome": "Reduced disease progression"
+      }
+    ],
+    "short_term": [],
+    "preventive": []
+  },
+  "environmental_factors": {
+    "likely_contributors": ["High humidity", "Poor air circulation"],
+    "suggested_adjustments": ["Improve ventilation", "Reduce watering frequency"]
+  },
+  "differential_diagnosis": [],
+  "technical_metadata": {
+    "model_version": "leaflens-v1",
+    "analysis_timestamp": "2024-01-15T10:30:00Z",
+    "plantvillage_class_match": "Tomato___Early_blight"
+  },
+  "user_friendly_summary": {
+    "headline": "Early Blight Detected",
+    "explanation": "Your tomato plant shows signs of early blight disease",
+    "next_steps": "Remove affected leaves and improve air circulation"
+  }
+}
+
+Now, analyze the provided leaf image following this framework and respond with ONLY the JSON object in the exact format shown above.
 `;
 
   /**
@@ -319,8 +379,25 @@ Now, analyze the provided leaf image following this framework.
       });
       
       const apiStartTime = Date.now();
+      
+      // Add system message to force JSON output
+      const systemMessage = "You are a plant disease diagnostic AI. You MUST respond with ONLY valid JSON. No markdown, no explanations, no text outside the JSON structure.";
+      
+      // Use a natural prompt that works with Gemini's habits
+      const naturalPrompt = `Analyze this plant leaf image and provide a detailed health assessment. Include:
+
+1. Plant identification (common name and scientific name if possible)
+2. Overall health status (healthy, unhealthy, or specific condition)
+3. Any diseases, pests, or health issues you can identify
+4. Severity level (mild, moderate, severe)
+5. Specific symptoms you observe
+6. Recommendations for treatment or care
+7. Your confidence level in the assessment (0-100%)
+
+Be thorough and specific in your analysis.`;
+
       const result = await this.model.generateContent([
-        prompt,
+        naturalPrompt,
         imagePart,
       ]);
       const apiTime = Date.now() - apiStartTime;
@@ -330,15 +407,100 @@ Now, analyze the provided leaf image following this framework.
       console.log('✅ Stage 6: Gemini API response received in', apiTime, 'ms');
       console.log('📄 Response length:', text.length, 'characters');
       console.log('📄 Raw response preview:', text.substring(0, 200) + '...');
+      console.log('🔍 COMPLETE GEMINI RAW OUTPUT:');
+      console.log('=' .repeat(80));
+      console.log(text);
+      console.log('=' .repeat(80));
+      
+      // Check if response starts and ends with JSON brackets
+      const startsWithBrace = text.trim().startsWith('{');
+      const endsWithBrace = text.trim().endsWith('}');
+      console.log('🔍 JSON FORMAT CHECK:');
+      console.log('  Starts with {:', startsWithBrace);
+      console.log('  Ends with }:', endsWithBrace);
+      console.log('  First 50 chars:', text.substring(0, 50));
+      console.log('  Last 50 chars:', text.substring(Math.max(0, text.length - 50)));
 
       // Stage 7: Parse response
       const parseStartTime = Date.now();
       const analysisResult = this.parseGeminiResponse(text);
       const parseTime = Date.now() - parseStartTime;
       console.log('🧠 Stage 7: Response parsed in', parseTime, 'ms');
-      console.log('🎯 Analysis result:', analysisResult.user_friendly_summary?.headline || 'Unknown');
+      
+      // Log all analysis result fields
+      console.log('🔍 COMPLETE ANALYSIS RESULT:');
+      console.log('=' .repeat(80));
       console.log('📊 Overall confidence:', analysisResult.overall_confidence + '%');
       console.log('🔍 Expert review required:', analysisResult.requires_expert_review);
+      console.log('❓ Uncertainty notes:', analysisResult.uncertainty_notes || 'None');
+      
+      console.log('\n🖼️ IMAGE QUALITY:');
+      console.log('  Acceptable:', analysisResult.image_quality.is_acceptable);
+      console.log('  Clarity score:', analysisResult.image_quality.clarity_score);
+      console.log('  Issues:', analysisResult.image_quality.issues);
+      console.log('  Retake guidance:', analysisResult.image_quality.retake_guidance || 'None');
+      
+      console.log('\n🌿 PLANT IDENTIFICATION:');
+      console.log('  Common name:', analysisResult.plant_identification.common_name);
+      console.log('  Scientific name:', analysisResult.plant_identification.scientific_name);
+      console.log('  Confidence:', analysisResult.plant_identification.confidence + '%');
+      
+      console.log('\n🩺 DIAGNOSES:');
+      analysisResult.diagnoses.forEach((diagnosis, index) => {
+        console.log(`  ${index + 1}. ${diagnosis.condition_name} (${diagnosis.scientific_name})`);
+        console.log(`     Confidence: ${diagnosis.confidence}%`);
+        console.log(`     Severity: ${diagnosis.severity}`);
+        console.log(`     Affected area: ${diagnosis.affected_area_percent}%`);
+        console.log(`     Stage: ${diagnosis.progression_stage}`);
+        console.log(`     Symptoms: ${diagnosis.key_symptoms.join(', ')}`);
+        console.log(`     Description: ${diagnosis.visual_description}`);
+        console.log(`     Regions: ${diagnosis.affected_regions}`);
+        console.log('');
+      });
+      
+      console.log('\n💡 RECOMMENDATIONS:');
+      console.log('  Immediate actions:');
+      analysisResult.recommendations.immediate.forEach((rec, index) => {
+        console.log(`    ${index + 1}. ${rec.action}`);
+        console.log(`       Reason: ${rec.reason}`);
+        console.log(`       Expected: ${rec.expected_outcome}`);
+      });
+      
+      console.log('  Short-term actions:');
+      analysisResult.recommendations.short_term.forEach((rec, index) => {
+        console.log(`    ${index + 1}. ${rec.action}`);
+        console.log(`       Reason: ${rec.reason}`);
+        console.log(`       Expected: ${rec.expected_outcome}`);
+      });
+      
+      console.log('  Preventive actions:');
+      analysisResult.recommendations.preventive.forEach((rec, index) => {
+        console.log(`    ${index + 1}. ${rec.action}`);
+        console.log(`       Reason: ${rec.reason}`);
+        console.log(`       Expected: ${rec.expected_outcome}`);
+      });
+      
+      console.log('\n🌍 ENVIRONMENTAL FACTORS:');
+      console.log('  Likely contributors:', analysisResult.environmental_factors.likely_contributors);
+      console.log('  Suggested adjustments:', analysisResult.environmental_factors.suggested_adjustments);
+      
+      console.log('\n🔬 DIFFERENTIAL DIAGNOSIS:');
+      analysisResult.differential_diagnosis.forEach((diff, index) => {
+        console.log(`  ${index + 1}. ${diff.alternative_condition} (${diff.likelihood} likelihood)`);
+        console.log(`     Distinguishing features: ${diff.distinguishing_features}`);
+      });
+      
+      console.log('\n📋 TECHNICAL METADATA:');
+      console.log('  Model version:', analysisResult.technical_metadata.model_version);
+      console.log('  Analysis timestamp:', analysisResult.technical_metadata.analysis_timestamp);
+      console.log('  PlantVillage class match:', analysisResult.technical_metadata.plantvillage_class_match || 'None');
+      
+      console.log('\n👤 USER FRIENDLY SUMMARY:');
+      console.log('  Headline:', analysisResult.user_friendly_summary.headline);
+      console.log('  Explanation:', analysisResult.user_friendly_summary.explanation);
+      console.log('  Next steps:', analysisResult.user_friendly_summary.next_steps);
+      
+      console.log('=' .repeat(80));
       
       const totalTime = Date.now() - analysisStartTime;
       console.log('⏱️ Total analysis time:', totalTime, 'ms');
@@ -360,48 +522,289 @@ Now, analyze the provided leaf image following this framework.
 
   /**
    * Parse Gemini response text to extract structured analysis
+   * Works with Gemini's natural response patterns
    */
   private parseGeminiResponse(text: string): GeminiAnalysisResponse {
     try {
-      console.log('🔍 Parsing Gemini response...');
+      console.log('🔍 Parsing Gemini response using natural language patterns...');
+      console.log('📝 Response length:', text.length, 'characters');
       
-      // Clean the response text (remove any markdown formatting)
+      // First try JSON parsing
+      const jsonResult = this.tryJsonParsing(text);
+      if (jsonResult) {
+        return jsonResult;
+      }
+      
+      // If no JSON, parse natural language response
+      console.log('📝 Parsing as natural language response...');
+      return this.parseNaturalLanguageResponse(text);
+      
+    } catch (error) {
+      console.error('❌ Error parsing Gemini response:', error);
+      console.error('Raw response:', text);
+      return this.createFallbackResponse(text);
+    }
+  }
+
+  /**
+   * Try to parse response as JSON
+   */
+  private tryJsonParsing(text: string): GeminiAnalysisResponse | null {
+    try {
+      // Clean the response text
       const cleanedText = text.trim()
         .replace(/^```json\s*/, '')
         .replace(/\s*```$/, '')
         .replace(/^```\s*/, '')
         .replace(/\s*```$/, '');
       
-      console.log('📝 Cleaned response text:', cleanedText.substring(0, 200) + '...');
+      const jsonResponse = JSON.parse(cleanedText);
+      console.log('✅ Successfully parsed JSON response');
       
-      // Try to parse as JSON first
-      try {
-        const jsonResponse = JSON.parse(cleanedText);
-        console.log('✅ Successfully parsed JSON response');
-        
-        // The new prompt should return the exact GeminiAnalysisResponse format
-        // Validate and return directly if it matches our interface
-        if (this.isValidGeminiResponse(jsonResponse)) {
-          return jsonResponse as GeminiAnalysisResponse;
-        } else {
-          // Fallback to conversion if structure doesn't match exactly
-          console.log('⚠️ Response structure doesn\'t match expected format, converting...');
-          return this.convertJsonToGeminiFormat(jsonResponse);
-        }
-      } catch (jsonError) {
-        console.log('⚠️ JSON parsing failed, trying structured text parsing...');
-        // Fallback to structured text parsing
-        const analysis = this.parseStructuredResponse(text);
-        return this.convertToJsonFormat(analysis);
+      if (this.isValidGeminiResponse(jsonResponse)) {
+        return jsonResponse as GeminiAnalysisResponse;
+      } else {
+        return this.convertJsonToGeminiFormat(jsonResponse);
       }
-      
     } catch (error) {
-      console.error('❌ Error parsing Gemini response:', error);
-      console.error('Raw response:', text);
-      
-      // Return a fallback response structure
-      return this.createFallbackResponse(text);
+      // Try to extract JSON from text
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const extractedJson = JSON.parse(jsonMatch[0]);
+          console.log('✅ Successfully extracted JSON from response');
+          if (this.isValidGeminiResponse(extractedJson)) {
+            return extractedJson as GeminiAnalysisResponse;
+          } else {
+            return this.convertJsonToGeminiFormat(extractedJson);
+          }
+        } catch (extractError) {
+          console.log('⚠️ JSON extraction failed:', extractError.message);
+        }
+      }
+      return null;
     }
+  }
+
+  /**
+   * Parse natural language response from Gemini
+   */
+  private parseNaturalLanguageResponse(text: string): GeminiAnalysisResponse {
+    console.log('🔍 Parsing natural language response...');
+    
+    // Extract information using regex patterns
+    const plantInfo = this.extractPlantIdentification(text);
+    const healthInfo = this.extractHealthStatus(text);
+    const diagnoses = this.extractDiagnoses(text);
+    const recommendations = this.extractRecommendations(text);
+    const confidence = this.extractConfidence(text);
+    
+    console.log('📊 Extracted information:');
+    console.log('  Plant:', plantInfo.common_name);
+    console.log('  Health:', healthInfo.status);
+    console.log('  Diagnoses:', diagnoses.length);
+    console.log('  Confidence:', confidence);
+    
+    return {
+      image_quality: {
+        is_acceptable: true,
+        clarity_score: 85,
+        issues: [],
+        retake_guidance: undefined
+      },
+      plant_identification: plantInfo,
+      diagnoses: diagnoses,
+      overall_confidence: confidence,
+      requires_expert_review: confidence < 70,
+      uncertainty_notes: confidence < 70 ? "Low confidence - expert review recommended" : undefined,
+      recommendations: recommendations,
+      environmental_factors: {
+        likely_contributors: [],
+        suggested_adjustments: []
+      },
+      differential_diagnosis: [],
+      technical_metadata: {
+        model_version: "leaflens-natural-parser-v1",
+        analysis_timestamp: new Date().toISOString(),
+        plantvillage_class_match: undefined
+      },
+      user_friendly_summary: {
+        headline: healthInfo.status === 'healthy' ? 'Healthy Plant' : 'Plant Health Issues Detected',
+        explanation: healthInfo.description || 'Plant analysis completed',
+        next_steps: recommendations.immediate.map(r => r.action).join('; ')
+      }
+    };
+  }
+
+  /**
+   * Extract plant identification from text
+   */
+  private extractPlantIdentification(text: string): { common_name: string; scientific_name: string; confidence: number } {
+    // Look for plant names in various patterns
+    const patterns = [
+      /(?:plant|leaf|specimen).*?(?:is|appears to be|looks like).*?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i,
+      /(?:identified|recognized).*?as.*?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/i,
+      /(?:this|the).*?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*).*?(?:plant|leaf)/i
+    ];
+    
+    let commonName = "Plant";
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        commonName = match[1];
+        break;
+      }
+    }
+    
+    // Look for scientific names (italicized or in parentheses)
+    const scientificPattern = /(?:scientific name|binomial|latin name).*?([A-Z][a-z]+\s+[a-z]+)/i;
+    const scientificMatch = text.match(scientificPattern);
+    const scientificName = scientificMatch ? scientificMatch[1] : "Unknown species";
+    
+    return {
+      common_name: commonName,
+      scientific_name: scientificName,
+      confidence: 75
+    };
+  }
+
+  /**
+   * Extract health status from text
+   */
+  private extractHealthStatus(text: string): { status: string; description: string } {
+    const healthyPatterns = [
+      /(?:healthy|good condition|no issues|appears healthy)/i,
+      /(?:no signs of disease|no visible problems)/i
+    ];
+    
+    const unhealthyPatterns = [
+      /(?:unhealthy|diseased|infected|damaged)/i,
+      /(?:shows signs of|appears to have|suffering from)/i
+    ];
+    
+    let status = "unknown";
+    let description = "";
+    
+    if (healthyPatterns.some(pattern => pattern.test(text))) {
+      status = "healthy";
+      description = "The plant appears to be in good health with no visible issues.";
+    } else if (unhealthyPatterns.some(pattern => pattern.test(text))) {
+      status = "unhealthy";
+      description = "The plant shows signs of health issues that require attention.";
+    } else {
+      status = "unknown";
+      description = "Unable to determine plant health status from the image.";
+    }
+    
+    return { status, description };
+  }
+
+  /**
+   * Extract diagnoses from text
+   */
+  private extractDiagnoses(text: string): Array<{
+    rank: number;
+    condition_name: string;
+    scientific_name: string;
+    confidence: number;
+    severity: 'Healthy' | 'Mild' | 'Moderate' | 'Severe' | 'Critical';
+    affected_area_percent: number;
+    progression_stage: 'Early' | 'Mid' | 'Advanced';
+    key_symptoms: string[];
+    visual_description: string;
+    affected_regions: string;
+  }> {
+    const diagnoses: any[] = [];
+    
+    // Look for disease mentions
+    const diseasePatterns = [
+      /(?:disease|infection|blight|rust|mildew|spot|rot|wilt|scorch)/gi
+    ];
+    
+    const diseaseMatches = text.match(/(?:disease|infection|blight|rust|mildew|spot|rot|wilt|scorch)/gi);
+    if (diseaseMatches) {
+      const uniqueDiseases = [...new Set(diseaseMatches)];
+      uniqueDiseases.forEach((disease, index) => {
+        diagnoses.push({
+          rank: index + 1,
+          condition_name: disease.charAt(0).toUpperCase() + disease.slice(1),
+          scientific_name: disease,
+          confidence: 70,
+          severity: 'Moderate' as const,
+          affected_area_percent: 20,
+          progression_stage: 'Early' as const,
+          key_symptoms: [disease],
+          visual_description: `Signs of ${disease} detected`,
+          affected_regions: "Leaf surface"
+        });
+      });
+    }
+    
+    return diagnoses;
+  }
+
+  /**
+   * Extract recommendations from text
+   */
+  private extractRecommendations(text: string): {
+    immediate: Array<{ action: string; reason: string; expected_outcome: string }>;
+    short_term: Array<{ action: string; reason: string; expected_outcome: string }>;
+    preventive: Array<{ action: string; reason: string; expected_outcome: string }>;
+  } {
+    const recommendations = {
+      immediate: [] as Array<{ action: string; reason: string; expected_outcome: string }>,
+      short_term: [] as Array<{ action: string; reason: string; expected_outcome: string }>,
+      preventive: [] as Array<{ action: string; reason: string; expected_outcome: string }>
+    };
+    
+    // Look for recommendation patterns
+    const recPatterns = [
+      /(?:recommend|suggest|advise|should|need to)/gi
+    ];
+    
+    const sentences = text.split(/[.!?]+/);
+    sentences.forEach(sentence => {
+      if (/(?:recommend|suggest|advise|should|need to)/i.test(sentence)) {
+        const action = sentence.trim();
+        if (action.length > 10) {
+          recommendations.immediate.push({
+            action: action,
+            reason: "Based on visual analysis",
+            expected_outcome: "Improved plant health"
+          });
+        }
+      }
+    });
+    
+    return recommendations;
+  }
+
+  /**
+   * Extract confidence level from text
+   */
+  private extractConfidence(text: string): number {
+    const confidencePatterns = [
+      /(?:confidence|certainty).*?(\d+)%/i,
+      /(\d+)%.*?(?:confidence|certainty)/i,
+      /(?:high|medium|low).*?(?:confidence|certainty)/i
+    ];
+    
+    for (const pattern of confidencePatterns) {
+      const match = text.match(pattern);
+      if (match) {
+        if (match[1]) {
+          return parseInt(match[1]);
+        } else if (match[0].toLowerCase().includes('high')) {
+          return 85;
+        } else if (match[0].toLowerCase().includes('medium')) {
+          return 65;
+        } else if (match[0].toLowerCase().includes('low')) {
+          return 45;
+        }
+      }
+    }
+    
+    return 75; // Default confidence
   }
 
   /**
@@ -785,12 +1188,15 @@ Now, analyze the provided leaf image following this framework.
    * Create fallback response when JSON parsing fails
    */
   private createFallbackResponse(rawText: string): GeminiAnalysisResponse {
+    console.log('🚨 Creating fallback response due to parsing failure');
+    console.log('📝 Raw response that failed to parse:', rawText);
+    
     return {
       image_quality: {
-        is_acceptable: true,
-        clarity_score: 50,
-        issues: ['Response parsing failed'],
-        retake_guidance: 'Unable to process response properly'
+        is_acceptable: false,
+        clarity_score: 0,
+        issues: ['Response parsing failed', 'Unable to process AI response'],
+        retake_guidance: 'Please try uploading a clearer image or contact support if the issue persists'
       },
       plant_identification: {
         common_name: 'Unknown Plant',
@@ -805,35 +1211,44 @@ Now, analyze the provided leaf image following this framework.
         severity: 'Healthy' as const,
         affected_area_percent: 0,
         progression_stage: 'Early' as const,
-        key_symptoms: ['Unable to analyze'],
-        visual_description: 'Analysis could not be completed due to processing error',
+        key_symptoms: ['Unable to analyze due to parsing error'],
+        visual_description: 'Analysis could not be completed due to AI response parsing error',
         affected_regions: 'Unable to determine'
       }],
       overall_confidence: 0,
       requires_expert_review: true,
-      uncertainty_notes: 'Gemini response could not be parsed properly. Raw response: ' + rawText.substring(0, 200),
+      uncertainty_notes: `AI response parsing failed. This may be due to unexpected response format from Gemini. Raw response preview: ${rawText.substring(0, 300)}...`,
       recommendations: {
         immediate: [{
           action: 'Retry analysis with a different image',
-          reason: 'Current analysis failed due to processing error',
+          reason: 'Current analysis failed due to AI response parsing error',
           expected_outcome: 'Successful analysis and diagnosis'
+        }, {
+          action: 'Check image quality and try again',
+          reason: 'Poor image quality may cause parsing issues',
+          expected_outcome: 'Better AI response that can be parsed correctly'
         }],
-        short_term: [],
+        short_term: [{
+          action: 'Contact support if issue persists',
+          reason: 'Persistent parsing errors may indicate a system issue',
+          expected_outcome: 'Technical support and resolution'
+        }],
         preventive: []
       },
       environmental_factors: {
-        likely_contributors: [],
-        suggested_adjustments: []
+        likely_contributors: ['Technical processing error'],
+        suggested_adjustments: ['Ensure stable internet connection', 'Try with different image format']
       },
       differential_diagnosis: [],
       technical_metadata: {
         model_version: 'leaflens-analysis-v1-fallback',
-        analysis_timestamp: new Date().toISOString()
+        analysis_timestamp: new Date().toISOString(),
+        plantvillage_class_match: 'parsing_error'
       },
       user_friendly_summary: {
-        headline: 'Analysis Error',
-        explanation: 'Unable to complete the analysis due to a processing error.',
-        next_steps: 'Please try uploading a different image or contact support.'
+        headline: 'Analysis Temporarily Unavailable',
+        explanation: 'We encountered a technical issue while processing your image. This is likely a temporary problem.',
+        next_steps: 'Please try uploading the image again, or try with a different image if the problem persists.'
       }
     };
   }

@@ -34,9 +34,11 @@ export default function RootNavigator() {
           },
           tabBarActiveTintColor: '#2E7D32',
           tabBarInactiveTintColor: '#424242',
+          tabBarShowLabel: false, // Hide tab labels
           headerStyle: {
             backgroundColor: '#F5F3E7',
           },
+          headerShown: false, // Hide header completely
         })}
       >
         <Tab.Screen name="Camera" component={CameraScreen} />

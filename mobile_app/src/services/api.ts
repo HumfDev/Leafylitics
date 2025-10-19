@@ -159,6 +159,77 @@ export const analyzeImage = async (imageUri: string): Promise<AnalysisResult> =>
     const result: AnalysisResult = await apiResponse.json();
     console.log('✅ Analysis complete:', result.results.user_friendly_summary.headline);
     
+    // Log the raw response to see what we're getting
+    console.log('🔍 RAW BACKEND RESPONSE:');
+    console.log('=' .repeat(60));
+    console.log(JSON.stringify(result, null, 2));
+    console.log('=' .repeat(60));
+    
+    // Log specific properties to see what's actually returned
+    console.log('🔍 RESPONSE PROPERTIES ANALYSIS:');
+    console.log('=' .repeat(60));
+    console.log('📊 Top level keys:', Object.keys(result));
+    console.log('📊 Results keys:', Object.keys(result.results || {}));
+    console.log('📊 Image quality keys:', Object.keys(result.results?.image_quality || {}));
+    console.log('📊 Plant identification keys:', Object.keys(result.results?.plant_identification || {}));
+    console.log('📊 Diagnoses array length:', result.results?.diagnoses?.length || 0);
+    console.log('📊 Recommendations keys:', Object.keys(result.results?.recommendations || {}));
+    console.log('📊 User summary keys:', Object.keys(result.results?.user_friendly_summary || {}));
+    
+    // Show actual values of key properties
+    console.log('\n🔍 KEY VALUES:');
+    console.log('  Overall confidence:', result.results?.overall_confidence);
+    console.log('  Expert review required:', result.results?.requires_expert_review);
+    console.log('  Uncertainty notes:', result.results?.uncertainty_notes);
+    console.log('  Image acceptable:', result.results?.image_quality?.is_acceptable);
+    console.log('  Plant common name:', result.results?.plant_identification?.common_name);
+    console.log('  Plant scientific name:', result.results?.plant_identification?.scientific_name);
+    console.log('  Number of diagnoses:', result.results?.diagnoses?.length || 0);
+    console.log('  Immediate recommendations:', result.results?.recommendations?.immediate?.length || 0);
+    console.log('  Headline:', result.results?.user_friendly_summary?.headline);
+    console.log('  Explanation:', result.results?.user_friendly_summary?.explanation);
+    console.log('=' .repeat(60));
+    
+    // Log detailed analysis results for debugging
+    console.log('🔍 DETAILED ANALYSIS RESULTS:');
+    console.log('=' .repeat(60));
+    console.log('📊 Overall confidence:', result.results.overall_confidence + '%');
+    console.log('🔍 Expert review required:', result.results.requires_expert_review);
+    console.log('❓ Uncertainty notes:', result.results.uncertainty_notes || 'None');
+    
+    console.log('\n🖼️ IMAGE QUALITY:');
+    console.log('  Acceptable:', result.results.image_quality.is_acceptable);
+    console.log('  Clarity score:', result.results.image_quality.clarity_score);
+    console.log('  Issues:', result.results.image_quality.issues);
+    
+    console.log('\n🌿 PLANT IDENTIFICATION:');
+    console.log('  Common name:', result.results.plant_identification.common_name);
+    console.log('  Scientific name:', result.results.plant_identification.scientific_name);
+    console.log('  Confidence:', result.results.plant_identification.confidence + '%');
+    
+    console.log('\n🩺 DIAGNOSES:');
+    result.results.diagnoses.forEach((diagnosis, index) => {
+      console.log(`  ${index + 1}. ${diagnosis.condition_name} (${diagnosis.scientific_name})`);
+      console.log(`     Confidence: ${diagnosis.confidence}%`);
+      console.log(`     Severity: ${diagnosis.severity}`);
+      console.log(`     Affected area: ${diagnosis.affected_area_percent}%`);
+      console.log(`     Symptoms: ${diagnosis.key_symptoms.join(', ')}`);
+      console.log('');
+    });
+    
+    console.log('\n💡 RECOMMENDATIONS:');
+    console.log('  Immediate actions:', result.results.recommendations.immediate.length);
+    result.results.recommendations.immediate.forEach((rec, index) => {
+      console.log(`    ${index + 1}. ${rec.action}`);
+    });
+    
+    console.log('\n👤 USER SUMMARY:');
+    console.log('  Headline:', result.results.user_friendly_summary.headline);
+    console.log('  Explanation:', result.results.user_friendly_summary.explanation);
+    console.log('  Next steps:', result.results.user_friendly_summary.next_steps);
+    
+    console.log('=' .repeat(60));
+    
     return result;
   } catch (error) {
     console.error('❌ Analysis error:', error);
