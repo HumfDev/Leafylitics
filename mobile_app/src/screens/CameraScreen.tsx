@@ -15,9 +15,21 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { analyzeImage, AnalysisResult } from '../services/api';
 
+type RootStackParamList = {
+  MainTabs: undefined;
+  AnalysisResults: {
+    results: AnalysisResult;
+  };
+};
+
+type CameraScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
+
 export default function CameraScreen() {
+  const navigation = useNavigation<CameraScreenNavigationProp>();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
@@ -88,13 +100,8 @@ export default function CameraScreen() {
         console.log('✅ Analysis successful:', result.results.user_friendly_summary.headline);
         setAnalysisResult(result);
         
-        // Show success alert with key information
-        const summary = result.results.user_friendly_summary;
-        Alert.alert(
-          'Analysis Complete',
-          `${summary.headline}\n\n${summary.explanation}\n\nNext Steps: ${summary.next_steps}`,
-          [{ text: 'View Details', onPress: () => {} }, { text: 'OK' }]
-        );
+        // Navigate to the analysis results screen
+        navigation.navigate('AnalysisResults', { results: result });
       } else {
         throw new Error('Analysis failed');
       }
@@ -163,25 +170,6 @@ export default function CameraScreen() {
           </View>
         )}
 
-        {analysisResult && (
-          <View style={styles.resultContainer}>
-            <Text style={styles.resultTitle}>Analysis Results</Text>
-            <Text style={styles.resultHeadline}>
-              {analysisResult.results.user_friendly_summary.headline}
-            </Text>
-            <Text style={styles.resultExplanation}>
-              {analysisResult.results.user_friendly_summary.explanation}
-            </Text>
-            <Text style={styles.resultConfidence}>
-              Confidence: {analysisResult.results.overall_confidence}%
-            </Text>
-            {analysisResult.results.requires_expert_review && (
-              <Text style={styles.expertReview}>
-                ⚠️ Expert review recommended
-              </Text>
-            )}
-          </View>
-        )}
       </View>
     </View>
   );
@@ -284,44 +272,6 @@ const styles = StyleSheet.create({
     color: '#D32F2F',
     fontSize: 14,
     fontWeight: '500',
-  },
-  resultContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  resultTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#424242',
-    marginBottom: 8,
-  },
-  resultHeadline: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2E7D32',
-    marginBottom: 8,
-  },
-  resultExplanation: {
-    fontSize: 14,
-    color: '#757575',
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  resultConfidence: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#424242',
-    marginBottom: 4,
-  },
-  expertReview: {
-    fontSize: 12,
-    color: '#FF9800',
-    fontWeight: '500',
-    fontStyle: 'italic',
   },
   testButton: {
     backgroundColor: '#2196F3',
