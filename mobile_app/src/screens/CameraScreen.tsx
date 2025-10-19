@@ -11,13 +11,17 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { analyzeImage, AnalysisResult } from '../services/api';
 
 export default function CameraScreen() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const pickImage = async () => {
     try {
@@ -38,23 +42,72 @@ export default function CameraScreen() {
     }
   };
 
-  const analyzeImage = async () => {
+  const testConnection = async () => {
+    try {
+      // Use the same dynamic IP logic as the API service
+      const API_BASE_URL = Platform.OS === 'android' 
+        ? 'http://10.0.2.2:3001' 
+        : 'http://10.19.146.211:3001';
+      
+      console.log('🏥 Testing backend connection...');
+      console.log('📡 Connecting to:', API_BASE_URL + '/health');
+      const response = await fetch(`${API_BASE_URL}/health`);
+      const data = await response.json();
+      console.log('✅ Backend health:', data);
+      
+      Alert.alert(
+        'Connection Test',
+        `Status: ${data.success ? 'Connected' : 'Failed'}\nMessage: ${data.message}\nVersion: ${data.version}`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('❌ Connection test failed:', error);
+      Alert.alert(
+        'Connection Failed',
+        'Cannot reach backend server. Make sure it\'s running on port 3001.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const performAnalysis = async () => {
     if (!selectedImage) {
       Alert.alert('No Image', 'Please select an image first');
       return;
     }
 
     setIsAnalyzing(true);
+    setError(null);
+    setAnalysisResult(null);
+
     try {
-      // TODO: Implement actual image analysis
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate analysis
+      console.log('🧠 Analyzing with Gemini AI...');
+      const result = await analyzeImage(selectedImage);
+      
+      if (result.success) {
+        console.log('✅ Analysis successful:', result.results.user_friendly_summary.headline);
+        setAnalysisResult(result);
+        
+        // Show success alert with key information
+        const summary = result.results.user_friendly_summary;
+        Alert.alert(
+          'Analysis Complete',
+          `${summary.headline}\n\n${summary.explanation}\n\nNext Steps: ${summary.next_steps}`,
+          [{ text: 'View Details', onPress: () => {} }, { text: 'OK' }]
+        );
+      } else {
+        throw new Error('Analysis failed');
+      }
+    } catch (error) {
+      console.error('❌ Analysis failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to analyze image';
+      setError(errorMessage);
+      
       Alert.alert(
-        'Analysis Complete',
-        'Disease: Healthy\nConfidence: 95%',
+        'Analysis Failed',
+        'Unable to analyze the image. Please check your connection and try again.',
         [{ text: 'OK' }]
       );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to analyze image');
     } finally {
       setIsAnalyzing(false);
     }
@@ -66,6 +119,10 @@ export default function CameraScreen() {
         <View style={styles.header}>
           <Text style={styles.headerText}>Upload Leaf Image</Text>
           <Text style={styles.subText}>Select an image from your gallery</Text>
+          
+          <TouchableOpacity style={styles.testButton} onPress={testConnection}>
+            <Text style={styles.testButtonText}>Test Backend Connection</Text>
+          </TouchableOpacity>
         </View>
 
         {selectedImage ? (
@@ -86,15 +143,44 @@ export default function CameraScreen() {
         {selectedImage && (
           <TouchableOpacity
             style={[styles.analyzeButton, isAnalyzing && styles.buttonDisabled]}
-            onPress={analyzeImage}
+            onPress={performAnalysis}
             disabled={isAnalyzing}
           >
             {isAnalyzing ? (
-              <ActivityIndicator size="large" color="white" />
+              <>
+                <ActivityIndicator size="large" color="white" />
+                <Text style={styles.analyzeButtonText}>Analyzing with AI...</Text>
+              </>
             ) : (
-              <Text style={styles.analyzeButtonText}>Analyze Leaf</Text>
+              <Text style={styles.analyzeButtonText}>Analyze with AI</Text>
             )}
           </TouchableOpacity>
+        )}
+
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {analysisResult && (
+          <View style={styles.resultContainer}>
+            <Text style={styles.resultTitle}>Analysis Results</Text>
+            <Text style={styles.resultHeadline}>
+              {analysisResult.results.user_friendly_summary.headline}
+            </Text>
+            <Text style={styles.resultExplanation}>
+              {analysisResult.results.user_friendly_summary.explanation}
+            </Text>
+            <Text style={styles.resultConfidence}>
+              Confidence: {analysisResult.results.overall_confidence}%
+            </Text>
+            {analysisResult.results.requires_expert_review && (
+              <Text style={styles.expertReview}>
+                ⚠️ Expert review recommended
+              </Text>
+            )}
+          </View>
         )}
       </View>
     </View>
@@ -185,6 +271,69 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  errorContainer: {
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F44336',
+  },
+  errorText: {
+    color: '#D32F2F',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  resultContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  resultTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#424242',
+    marginBottom: 8,
+  },
+  resultHeadline: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2E7D32',
+    marginBottom: 8,
+  },
+  resultExplanation: {
+    fontSize: 14,
+    color: '#757575',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  resultConfidence: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#424242',
+    marginBottom: 4,
+  },
+  expertReview: {
+    fontSize: 12,
+    color: '#FF9800',
+    fontWeight: '500',
+    fontStyle: 'italic',
+  },
+  testButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginTop: 12,
+  },
+  testButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
   },
 });
 

@@ -3,6 +3,9 @@
  * Implements detailed plant disease diagnostic framework using Gemini Vision API
  */
 
+// Set API version before importing the library
+process.env['GOOGLE_GENERATIVE_AI_API_VERSION'] = 'v1';
+
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AnalysisResults } from '../../types/index.js';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
@@ -89,12 +92,10 @@ export class GeminiAnalysisService {
       throw new Error('GOOGLE_API_KEY environment variable is required');
     }
     
-    // Set environment variable to use v1beta API for free tier
-    process.env['GOOGLE_GENERATIVE_AI_API_VERSION'] = 'v1beta';
-    
+    // Use gemini-2.5-flash model (latest)
     this.genAI = new GoogleGenerativeAI(apiKey);
     this.model = this.genAI.getGenerativeModel({ 
-      model: 'gemini-pro-vision',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 0.7,
         topK: 40,
@@ -215,15 +216,15 @@ Now, analyze the provided leaf image following this framework.
       const metadata = await sharp(imageBuffer).metadata();
       console.log(`📏 Original size: ${imageBuffer.length} bytes (${metadata.width}x${metadata.height})`);
       
-      // Compress image with optimal settings for plant analysis
+      // Compress image with optimal settings for detailed crop analysis
       const compressedBuffer = await sharp(imageBuffer)
-        .resize(1024, 1024, { 
+        .resize(1536, 1536, { 
           fit: 'inside', 
           withoutEnlargement: true,
           background: { r: 255, g: 255, b: 255, alpha: 1 }
         })
         .jpeg({ 
-          quality: 85, 
+          quality: 90, 
           progressive: true,
           mozjpeg: true
         })
@@ -266,23 +267,29 @@ Now, analyze the provided leaf image following this framework.
    * Analyze leaf image using comprehensive Gemini framework
    */
   async analyzeLeafImage(imageBuffer: Buffer, filename: string, plantSpecies?: string): Promise<GeminiAnalysisResponse> {
+    const analysisStartTime = Date.now();
+    
     try {
-      console.log('🖼️ Processing image for Gemini analysis...');
+      console.log('🖼️ Stage 1: Image received for Gemini analysis');
       console.log('📊 Original image size:', imageBuffer.length, 'bytes');
+      console.log('📄 Filename:', filename);
+      console.log('🌿 Plant species hint:', plantSpecies || 'None provided');
       
-      // Compress image before processing
+      // Stage 2: Image compression
+      const compressionStartTime = Date.now();
       const compressedBuffer = await this.compressImage(imageBuffer);
-      console.log('📦 Compressed image size:', compressedBuffer.length, 'bytes');
+      const compressionTime = Date.now() - compressionStartTime;
+      console.log('📦 Stage 2: Image compressed in', compressionTime, 'ms');
+      console.log('📊 Compressed image size:', compressedBuffer.length, 'bytes');
       
-      // Save compressed image locally for reference
+      // Stage 3: Save image locally
       const savedImagePath = this.saveImageLocally(compressedBuffer, filename);
-      console.log(`📁 Image saved locally at: ${savedImagePath}`);
+      console.log('📁 Stage 3: Image saved locally at:', savedImagePath);
       
-      // Convert compressed image buffer to base64 for Gemini API
+      // Stage 4: Prepare for API
       const base64Image = compressedBuffer.toString('base64');
-      console.log('🔄 Converted image to base64, length:', base64Image.length);
+      console.log('🔄 Stage 4: Image converted to base64, length:', base64Image.length);
       
-      // Create the image part for the prompt
       const imagePart = {
         inlineData: {
           data: base64Image,
@@ -290,40 +297,62 @@ Now, analyze the provided leaf image following this framework.
         },
       };
 
-      console.log('🚀 Sending to Gemini API...');
-      console.log('🔑 Using API Key:', process.env['GOOGLE_API_KEY'] ? 'Present' : 'Missing');
+      // Stage 5: API call preparation
+      console.log('🚀 Stage 5: Sending to Gemini API...');
+      console.log('🔑 API Key status:', process.env['GOOGLE_API_KEY'] ? 'Present' : 'Missing');
       
-      // Generate content with image and prompt (include species hint if provided)
       const prompt = plantSpecies 
         ? this.ANALYSIS_PROMPT.replace(
-            'Analyze the attached leaf image carefully',
-            `Analyze the attached image of a **${plantSpecies}** leaf carefully`
+            'Analyze the provided leaf image and deliver a comprehensive health assessment.',
+            `Analyze the provided **${plantSpecies}** leaf image and deliver a comprehensive health assessment.`
           )
         : this.ANALYSIS_PROMPT;
       
-      console.log('📝 Prompt length:', prompt.length);
+      console.log('📝 Prompt length:', prompt.length, 'characters');
       
+      // Stage 6: API call
+      console.log('🔍 Model configuration:', {
+        model: 'gemini-2.5-flash',
+        apiVersion: 'v1beta',
+        endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+        plan: 'Free Plan'
+      });
+      
+      const apiStartTime = Date.now();
       const result = await this.model.generateContent([
         prompt,
         imagePart,
       ]);
+      const apiTime = Date.now() - apiStartTime;
 
       const response = await result.response;
       const text = response.text();
-      console.log('✅ Gemini response received, length:', text.length);
+      console.log('✅ Stage 6: Gemini API response received in', apiTime, 'ms');
+      console.log('📄 Response length:', text.length, 'characters');
       console.log('📄 Raw response preview:', text.substring(0, 200) + '...');
 
-      // Parse the JSON response
+      // Stage 7: Parse response
+      const parseStartTime = Date.now();
       const analysisResult = this.parseGeminiResponse(text);
-      console.log('🧠 Parsed analysis result:', analysisResult.user_friendly_summary?.headline || 'Unknown');
+      const parseTime = Date.now() - parseStartTime;
+      console.log('🧠 Stage 7: Response parsed in', parseTime, 'ms');
+      console.log('🎯 Analysis result:', analysisResult.user_friendly_summary?.headline || 'Unknown');
+      console.log('📊 Overall confidence:', analysisResult.overall_confidence + '%');
+      console.log('🔍 Expert review required:', analysisResult.requires_expert_review);
+      
+      const totalTime = Date.now() - analysisStartTime;
+      console.log('⏱️ Total analysis time:', totalTime, 'ms');
       
       return analysisResult;
     } catch (error) {
-      console.error('❌ Error in Gemini leaf analysis:', error);
+      const totalTime = Date.now() - analysisStartTime;
+      console.error('❌ Error in Gemini leaf analysis after', totalTime, 'ms:', error);
       console.error('🔍 Error details:', {
         message: error.message,
         stack: error.stack,
-        name: error.name
+        name: error.name,
+        filename: filename,
+        plantSpecies: plantSpecies || 'None'
       });
       throw new Error(`Gemini analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
