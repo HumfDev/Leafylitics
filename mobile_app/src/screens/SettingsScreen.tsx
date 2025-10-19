@@ -81,6 +81,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.neutral.earthBeige,
+    paddingTop: 60,
   },
   section: {
     marginTop: theme.spacing.lg,

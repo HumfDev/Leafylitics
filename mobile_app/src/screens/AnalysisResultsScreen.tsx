@@ -269,10 +269,6 @@ export default function AnalysisResultsScreen() {
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>🌿 Plant Identification</Text>
         <View style={styles.plantRow}>
-          <Text style={styles.plantLabel}>Common Name:</Text>
-          <Text style={styles.plantValue}>{plantId.common_name}</Text>
-        </View>
-        <View style={styles.plantRow}>
           <Text style={styles.plantLabel}>Scientific Name:</Text>
           <Text style={styles.plantValue}>{plantId.scientific_name}</Text>
         </View>
@@ -286,33 +282,6 @@ export default function AnalysisResultsScreen() {
     );
   };
 
-  const renderTechnicalMetadata = () => {
-    const metadata = results.results.technical_metadata;
-    
-    return (
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>🔧 Technical Details</Text>
-        <View style={styles.metadataRow}>
-          <Text style={styles.metadataLabel}>Model Version:</Text>
-          <Text style={styles.metadataValue}>{metadata.model_version}</Text>
-        </View>
-        <View style={styles.metadataRow}>
-          <Text style={styles.metadataLabel}>Analysis Time:</Text>
-          <Text style={styles.metadataValue}>
-            {new Date(metadata.analysis_timestamp).toLocaleString()}
-          </Text>
-        </View>
-        <View style={styles.metadataRow}>
-          <Text style={styles.metadataLabel}>PlantVillage Match:</Text>
-          <Text style={styles.metadataValue}>{metadata.plantvillage_class_match}</Text>
-        </View>
-        <View style={styles.metadataRow}>
-          <Text style={styles.metadataLabel}>Processing Time:</Text>
-          <Text style={styles.metadataValue}>{results.processingTimeMs}ms</Text>
-        </View>
-      </View>
-    );
-  };
 
   return (
     <View style={styles.container}>
@@ -324,7 +293,6 @@ export default function AnalysisResultsScreen() {
         {renderDifferentialDiagnosis()}
         {renderRecommendations()}
         {renderEnvironmentalFactors()}
-        {renderTechnicalMetadata()}
         
         <View style={styles.footer}>
           <Text style={styles.footerText}>
@@ -344,6 +312,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
+    paddingTop: 60,
   },
   statusCard: {
     backgroundColor: 'white',
@@ -622,24 +591,6 @@ const styles = StyleSheet.create({
     color: '#424242',
   },
   plantValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#424242',
-    flex: 1,
-    textAlign: 'right',
-  },
-  metadataRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  metadataLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#424242',
-  },
-  metadataValue: {
     fontSize: 14,
     fontWeight: '600',
     color: '#424242',

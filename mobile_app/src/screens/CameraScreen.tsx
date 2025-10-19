@@ -9,7 +9,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
   Image,
   Platform,
 } from 'react-native';
@@ -18,6 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { analyzeImage, AnalysisResult } from '../services/api';
+import { savePlant } from '../services/storage';
+import AnalysisProgressBar from '../components/Common/AnalysisProgressBar';
 
 type RootStackParamList = {
   MainTabs: undefined;
@@ -54,33 +55,6 @@ export default function CameraScreen() {
     }
   };
 
-  const testConnection = async () => {
-    try {
-      // Use the same dynamic IP logic as the API service
-      const API_BASE_URL = Platform.OS === 'android' 
-        ? 'http://10.0.2.2:3001' 
-        : 'http://10.19.146.211:3001';
-      
-      console.log('🏥 Testing backend connection...');
-      console.log('📡 Connecting to:', API_BASE_URL + '/health');
-      const response = await fetch(`${API_BASE_URL}/health`);
-      const data = await response.json();
-      console.log('✅ Backend health:', data);
-      
-      Alert.alert(
-        'Connection Test',
-        `Status: ${data.success ? 'Connected' : 'Failed'}\nMessage: ${data.message}\nVersion: ${data.version}`,
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('❌ Connection test failed:', error);
-      Alert.alert(
-        'Connection Failed',
-        'Cannot reach backend server. Make sure it\'s running on port 3001.',
-        [{ text: 'OK' }]
-      );
-    }
-  };
 
   const performAnalysis = async () => {
     if (!selectedImage) {
@@ -94,11 +68,30 @@ export default function CameraScreen() {
 
     try {
       console.log('🧠 Analyzing with Gemini AI...');
-      const result = await analyzeImage(selectedImage);
+      
+      // Start the actual analysis
+      const analysisPromise = analyzeImage(selectedImage);
+      
+      // Wait for both the progress bar and the actual analysis to complete
+      const [result] = await Promise.all([
+        analysisPromise,
+        // Add a minimum delay to ensure progress bar shows properly
+        new Promise(resolve => setTimeout(resolve, 2000))
+      ]);
       
       if (result.success) {
         console.log('✅ Analysis successful:', result.results.user_friendly_summary.headline);
         setAnalysisResult(result);
+        
+        // Save the plant with a default name
+        const plantName = result.results.plant_identification?.scientific_name || 'Plant';
+        const savedPlant = await savePlant({
+          name: `${plantName} - ${new Date().toLocaleDateString()}`,
+          imageUri: selectedImage,
+          analysisResult: result,
+        });
+        
+        console.log('💾 Plant saved:', savedPlant.id);
         
         // Navigate to the analysis results screen
         navigation.navigate('AnalysisResults', { results: result });
@@ -124,12 +117,8 @@ export default function CameraScreen() {
     <View style={styles.container}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.headerText}>Upload Leaf Image</Text>
+          <Text style={styles.headerText}>Upload Image</Text>
           <Text style={styles.subText}>Select an image from your gallery</Text>
-          
-          <TouchableOpacity style={styles.testButton} onPress={testConnection}>
-            <Text style={styles.testButtonText}>Test Backend Connection</Text>
-          </TouchableOpacity>
         </View>
 
         {selectedImage ? (
@@ -148,20 +137,27 @@ export default function CameraScreen() {
         )}
 
         {selectedImage && (
-          <TouchableOpacity
-            style={[styles.analyzeButton, isAnalyzing && styles.buttonDisabled]}
-            onPress={performAnalysis}
-            disabled={isAnalyzing}
-          >
-            {isAnalyzing ? (
-              <>
-                <ActivityIndicator size="large" color="white" />
-                <Text style={styles.analyzeButtonText}>Analyzing with AI...</Text>
-              </>
-            ) : (
-              <Text style={styles.analyzeButtonText}>Analyze with AI</Text>
+          <View>
+            <TouchableOpacity
+              style={[styles.analyzeButton, isAnalyzing && styles.buttonDisabled]}
+              onPress={performAnalysis}
+              disabled={isAnalyzing}
+            >
+              <Text style={styles.analyzeButtonText}>
+                {isAnalyzing ? 'Analysis in Progress...' : 'Analyze with AI'}
+              </Text>
+            </TouchableOpacity>
+            
+            {isAnalyzing && (
+              <AnalysisProgressBar
+                isAnalyzing={isAnalyzing}
+                onComplete={() => {
+                  // This will be called when the progress bar completes
+                  // The actual analysis completion is handled in performAnalysis
+                }}
+              />
             )}
-          </TouchableOpacity>
+          </View>
         )}
 
         {error && (
@@ -271,18 +267,6 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#D32F2F',
     fontSize: 14,
-    fontWeight: '500',
-  },
-  testButton: {
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-    marginTop: 12,
-  },
-  testButtonText: {
-    color: 'white',
-    fontSize: 12,
     fontWeight: '500',
   },
 });

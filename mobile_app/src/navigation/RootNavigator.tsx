@@ -12,6 +12,7 @@ import CameraScreen from '../screens/CameraScreen';
 import MyPlantsScreen from '../screens/MyPlantsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AnalysisResultsScreen from '../screens/AnalysisResultsScreen';
+import PlantDetailScreen from '../screens/PlantDetailScreen';
 // import theme from '../theme';
 
 const Tab = createBottomTabNavigator();
@@ -72,6 +73,13 @@ export default function RootNavigator() {
             headerTitleStyle: {
               fontWeight: '600',
             },
+          }}
+        />
+        <Stack.Screen 
+          name="PlantDetail" 
+          component={PlantDetailScreen}
+          options={{
+            headerShown: false,
           }}
         />
       </Stack.Navigator>
