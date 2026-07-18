@@ -1,3 +1,4 @@
+<!-- dc:last-synced: 2026-07-18 -->
 # Leafylitics
 
 An AI-powered farming application that analyzes plant health through leaf image recognition. Simply take a picture of a leaf, and Leafylitics will provide detailed insights about plant health, disease detection, nutrient deficiencies, and growth recommendations.
